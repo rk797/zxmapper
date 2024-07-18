@@ -322,7 +322,7 @@ namespace zxmapper
                         //should probably use switch for speed but too lazy
                         if (code == ScanCodes.JUMP) _keyJump = isKeyDown;
                         else if (code == ScanCodes.LEFT)
-                        {
+                        { 
                             _keyLeft = isKeyDown;
                             if (isKeyDown) _lastDirectionX = DirectionStateX.Left;
                             else if (_lastDirectionX == DirectionStateX.Left && !_keyRight) _lastDirectionX = DirectionStateX.None;
