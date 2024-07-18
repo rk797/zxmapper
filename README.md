@@ -23,7 +23,7 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 1. **Clone this Repository**:
     - Clone the repository to your local machine using the following command:
       ```sh
-      git clone https://github.com/yourusername/zxmapper.git
+      git clone https://github.com/rk797/zxmapper.git
       ```
 
 2. **Build the Project**:
@@ -60,8 +60,8 @@ Contributions are welcome! If you'd like to contribute to this project, please f
 
 ## Acknowledgements
 
-- **Interception Driver**: Special thanks to the developers of the Interception driver. Learn more about Interception [here](https://github.com/oblitum/Interception).
-- **ViGEmBus**: Special thanks to the ViGEmBus team for providing an excellent virtual gamepad emulation solution. Learn more about ViGEmBus [here](https://vigem.org/projects/ViGEm/).
+- **Interception Driver**: developers of the Interception driver. Learn more about Interception [here](https://github.com/oblitum/Interception).
+- **ViGEmBus**: virtual gamepad emulation driver + wrapper. Learn more about ViGEmBus [here](https://vigem.org/projects/ViGEm/).
 
 
 ### Disclaimer
