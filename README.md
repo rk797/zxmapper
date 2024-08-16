@@ -4,20 +4,21 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 
 ## Features
 
-- **Remap Keystrokes to Controller Inputs**: Convert keyboard inputs into controller actions.
-- **Interception Driver Integration**: Utilizes the Interception driver to capture and remap keyboard inputs.
-- **ViGEmBus Integration**: Emulates a virtual gamepad using ViGEmBus, enabling compatibility with a wide range of games and applications.
-- **Customizable WASD Mappings**: Easily customize and configure your key-to-controller mappings to suit your needs.
+- **Keystrokes to Controller Mapping**: Convert keyboard inputs to controller actions.
+- **Interception Driver**: Capture and remap keyboard inputs.
+- **ViGEmBus Support**: Emulate a virtual gamepad for broad compatibility.
+- **Customizable Mappings**: Easily configure key-to-controller mappings.
+
 
 ## Requirements
 
-- **Windows Operating System**: This program is designed to run on Windows.
+- **Win10+**
 
 ## Installation
 ### Option 1
 1. Download the latest release from [Releases](https://github.com/rk797/zxmapper/releases)
 2. Disable Anti Virus
-3. Run zxmapper.exe!
+3. Run zxmapper.exe
 
 ### Option 2
 1. **Clone this Repository**:
@@ -38,20 +39,6 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 ### Antivirus Software
 
 Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
-
-## Usage
-
-1. **Launch the Application**:
-    - Run the executable file generated from the build process.
-
-2. **Configure Mappings**:
-    - Use the application interface to configure your key-to-controller mappings. Assign keyboard keys to specific controller buttons, sticks, and triggers.
-
-3. **Save and Load Configurations**:
-    - Save your configurations for future use and load them as needed.
-
-4. **Start Remapping**:
-    - Activate the remapping functionality to begin using your keyboard as a controller.
 
 ## Contributing
 
