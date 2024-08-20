@@ -20,6 +20,9 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 - **Win10+**
 
 ## Installation
+
+>[!IMPORTANT]
+> Disable steam input for low latency
 ### Option 1
 1. Download the latest release from [Releases](https://github.com/rk797/zxmapper/releases)
 2. Disable Anti Virus
@@ -39,11 +42,10 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
     - Add the ViGEmBus.msi file to the build dir
     - Add the interception.dll binary to the build dir
    
-## Important Notice
 
-### Antivirus Software
 
-Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
+>[!NOTE]
+> Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might > mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
 
 
 ## Credits
