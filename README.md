@@ -14,11 +14,6 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 - **ViGEmBus Support**: Emulate a virtual gamepad for broad compatibility.
 - **Customizable Mappings**: Easily configure key-to-controller mappings.
 
-
-## Requirements
-
-- **Win10+**
-
 ## Installation
 
 >[!IMPORTANT]
@@ -45,7 +40,7 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 
 
 >[!NOTE]
-> Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might > mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
+> Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
 
 
 ## Credits
