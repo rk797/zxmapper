@@ -1,5 +1,10 @@
 # ZXMapper
-
+<p align="left">
+  <img src="https://img.shields.io/github/license/rk797/zxmapper" alt="License">
+  <img src="https://img.shields.io/github/stars/rk797/zxmapper" alt="Stars">
+  <img src="https://img.shields.io/github/forks/rk797/zxmapper" alt="Forks">
+  <img src="https://komarev.com/ghpvc/?username=zxmapper&label=Views" alt="Views">
+</p>
 ZXMapper is a C# application that allows you to remap your keystrokes to controller inputs using the Interception driver and ViGEmBus for virtual gamepad emulation.
 
 ## Features
@@ -40,12 +45,8 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 
 Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
 
-## Contributing
 
-Contributions are welcome! If you'd like to contribute to this project, please fork the repository and submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
-
-
-## Acknowledgements
+## Credits
 
 - **Interception Driver**: developers of the Interception driver. Learn more about Interception [here](https://github.com/oblitum/Interception).
 - **ViGEmBus**: virtual gamepad emulation driver + wrapper. Learn more about ViGEmBus [here](https://vigem.org/projects/ViGEm/).
@@ -53,6 +54,3 @@ Contributions are welcome! If you'd like to contribute to this project, please f
 ## Donations
 - LTC: MHAjWpuFbyQrqYw4GpcHCLHSZ6Go1xdsyq
   
-### Disclaimer
-
-This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.
