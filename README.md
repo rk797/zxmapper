@@ -11,7 +11,6 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 
 - **Keystrokes to Controller Mapping**: Convert keyboard inputs to controller actions.
 - **Interception Driver**: Capture and remap keyboard inputs.
-- **ViGEmBus Support**: Emulate a virtual gamepad for broad compatibility.
 - **Customizable Mappings**: Easily configure key-to-controller mappings.
 
 ## Installation
@@ -48,6 +47,4 @@ ZXMapper is a C# application that allows you to remap your keystrokes to control
 - **Interception Driver**: developers of the Interception driver. Learn more about Interception [here](https://github.com/oblitum/Interception).
 - **ViGEmBus**: virtual gamepad emulation driver + wrapper. Learn more about ViGEmBus [here](https://vigem.org/projects/ViGEm/).
 
-## Donations
-- LTC: MHAjWpuFbyQrqYw4GpcHCLHSZ6Go1xdsyq
   
