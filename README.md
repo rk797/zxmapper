@@ -21,6 +21,7 @@ virtual gamepad emulation.
 - Customizable mappings
 - Cross center axis reset from W->D or D->W
 - Low input latency
+- Suppports southpaw / standard axis configuration
 ```
 
 
