@@ -5,44 +5,58 @@
   <img src="https://img.shields.io/github/forks/rk797/zxmapper" alt="Forks">
   <img src="https://komarev.com/ghpvc/?username=zxmapper&label=Views" alt="Views">
 </p>
-ZXMapper is a C# application that allows you to remap your keystrokes to controller inputs using the Interception driver and ViGEmBus for virtual gamepad emulation.
+
+
+## Description
+
+
+ZXMapper is a C# application that allows you to remap your keystrokes 
+to controller inputs using the Interception driver and ViGEmBus for 
+virtual gamepad emulation.
+
 
 ## Features
 ```sh-session
 - Keystroke -> Controller mapping
+- Customizable mappings
+- Cross center axis reset from W->D or D->W
+- Low input latency
 ```
 
-- **Keystrokes to Controller Mapping**: Convert keyboard inputs to controller actions.
-- **Interception Driver**: Capture and remap keyboard inputs.
-- **Customizable Mappings**: Easily configure key-to-controller mappings.
 
 ## Installation
 
 >[!IMPORTANT]
-> Disable steam input for low latency
+> Disable steam input for low latency (sometimes causes issues with remapping)
+
 ### Option 1
+```sh-session
 1. Download the latest release from [Releases](https://github.com/rk797/zxmapper/releases)
 2. Disable Anti Virus
 3. Run zxmapper.exe
-
+```
 ### Option 2
-1. **Clone this Repository**:
-    - Clone the repository to your local machine using the following command:
-      ```sh
-      git clone https://github.com/rk797/zxmapper.git
-      ```
 
-2. **Build the Project**:
+```sh-session
+1. Clone this Repository:
+    - Clone the repository to your local machine using the following command
+
+      git clone https://github.com/rk797/zxmapper.git
+
+
+2. Build the Project:
     - Open the project in your preferred C# development environment (e.g., Visual Studio).
     - Restore the NuGet packages and build the solution.
+
+
 3. Add Requirements to build dir
     - Add the ViGEmBus.msi file to the build dir
     - Add the interception.dll binary to the build dir
-   
-
+```
 
 >[!NOTE]
-> Please note that some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
+> Some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
+
 
 
 ## Credits
