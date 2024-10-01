@@ -1,4 +1,6 @@
 # ZXMapper
+# If this repository gets 50 stars, I will release source code for a hardware remapper. ⭐
+
 <p align="left">
   <img src="https://img.shields.io/github/license/rk797/zxmapper" alt="License">
   <img src="https://img.shields.io/github/stars/rk797/zxmapper" alt="Stars">
