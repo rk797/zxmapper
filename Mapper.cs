@@ -1,6 +1,7 @@
 ﻿using Nefarius.ViGEm.Client.Targets.Xbox360;
 using Nefarius.ViGEm.Client.Targets;
 using Nefarius.ViGEm.Client;
+using Nefarius.ViGEm.Client.Targets.DualShock4;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,10 +12,19 @@ using static interceptioncs;
 using System.Reflection;
 using System.IO;
 using System.Windows.Forms;
+using System.Threading;
 
 
 namespace zxmapper
 {
+    // Controller type enum
+    public enum ControllerType
+    {
+        Xbox360,
+        DualShock4,
+        DualSense
+    }
+
     public static class ScanCodes
     {
         public static int FORWARD { get; set; } = 0x11; // Up
@@ -44,11 +54,17 @@ namespace zxmapper
         public static int PING { get; set; } = 0x21;
         public static int GRENADE { get; set; } = 0x2F;
         public static int MAP { get; set; } = 0x0F;
+        public static int ENABLE { get; set; } = 0x3B; // F1
+        public static int DISABLE { get; set; } = 0x3C; // F2
     }
     internal class Mapper
     {
         private ViGEmClient _client;
-        private IXbox360Controller _controller;
+        private IXbox360Controller _xbox360Controller;
+        private IDualShock4Controller _dualshock4Controller;
+        private IVirtualGamepad _activeController;
+
+        private ControllerType _controllerType = ControllerType.Xbox360;
 
         private IntPtr _interceptionContext;
         private int device;
@@ -107,6 +123,13 @@ namespace zxmapper
 
         ushort keyboardFilterInit = (ushort)(FilterKeyState.All);
 
+        private bool _leftMouseDown = false;
+        private bool _rightMouseDown = false;
+
+        private DateTime _lastLeftClickTime = DateTime.Now;
+        private DateTime _lastRightClickTime = DateTime.Now;
+        private const int MOUSE_BUTTON_CHECK_INTERVAL = 100; // milliseconds
+
         public Mapper()
         {
             LoadConfiguration("config.zxm");
@@ -120,13 +143,27 @@ namespace zxmapper
 
             Task.Run(() => zxmapperTask());
             Task.Run(() => CheckForMouseInactivity());
+            Task.Run(() => CheckForStuckMouseButtons());
         }
 
         private void InitializeVigem()
         {
             _client = new ViGEmClient();
-            _controller = _client.CreateXbox360Controller();
-            _controller.Connect();
+
+            switch (_controllerType)
+            {
+                case ControllerType.Xbox360:
+                    _xbox360Controller = _client.CreateXbox360Controller();
+                    _activeController = _xbox360Controller;
+                    _xbox360Controller.Connect();
+                    break;
+                case ControllerType.DualShock4:
+                case ControllerType.DualSense: // DualSense uses same API as DualShock4 in ViGEm
+                    _dualshock4Controller = _client.CreateDualShock4Controller();
+                    _activeController = _dualshock4Controller;
+                    _dualshock4Controller.Connect();
+                    break;
+            }
         }
 
         private void InitializeInterception()
@@ -187,9 +224,6 @@ namespace zxmapper
         private bool _keyMap = false;
         private bool _keyInventory = false;
 
-        private bool _leftMouseDown = false;
-        private bool _rightMouseDown = false;
-
         private bool _keyCtrl = false;
         private bool _keyAlt = false;
         private bool _keyDelete = false;
@@ -228,7 +262,6 @@ namespace zxmapper
                 {
                     if (interception_is_mouse(device) == 1)
                     {
-
                         MouseStroke mouseStroke = (MouseStroke)stroke;
 
                         if (((mouseStroke.state & (ushort)ScanCodes.TOGGLE) != 0))
@@ -248,56 +281,74 @@ namespace zxmapper
 
                         smoothIndex = (smoothIndex + 1) % smoothing;
 
-                        double averageX = smoothedX.Average();
-                        double averageY = smoothedY.Average();
+                        double avgX = smoothedX.Average();
+                        double avgY = smoothedY.Average();
 
-                        averageX = Math.Max(Math.Min(averageX, capFactor), -capFactor);
-                        averageY = Math.Max(Math.Min(averageY, capFactor), -capFactor);
+                        avgX = Math.Max(Math.Min(avgX, capFactor), -capFactor);
+                        avgY = Math.Max(Math.Min(avgY, capFactor), -capFactor);
 
-
-                        short joystickX = (short)(averageX * short.MaxValue / capFactor);
-                        short joystickY = (short)(averageY * short.MaxValue / -capFactor);
-                        
+                        short joystickX = (short)Math.Round(avgX);
+                        short joystickY = (short)Math.Round(avgY);
 
                         joystickX = (short)Math.Max(Math.Min(joystickX, short.MaxValue), short.MinValue);
                         joystickY = (short)Math.Max(Math.Min(joystickY, short.MaxValue), short.MinValue);
 
-                        //if ((mouseStroke.state & (ushort)MouseState.LeftDown) != 0)
-                        //{
-                        //    Debug.WriteLine("Left mouse down");
-
-                        //}
-
-
-                        if (mouseStroke.state == 1)
+                        if ((mouseStroke.state & (ushort)MouseState.LeftDown) != 0)
                         {
                             _leftMouseDown = true;
+                            _lastLeftClickTime = DateTime.Now;
                         }
-                        else if (mouseStroke.state == 2)
+                        else if ((mouseStroke.state & (ushort)MouseState.LeftUp) != 0)
                         {
                             _leftMouseDown = false;
                         }
-                        else if (mouseStroke.state == 4)
+                        
+                        if ((mouseStroke.state & (ushort)MouseState.RightDown) != 0)
                         {
                             _rightMouseDown = true;
+                            _lastRightClickTime = DateTime.Now;
                         }
-                        else if (mouseStroke.state == 8)
+                        else if ((mouseStroke.state & (ushort)MouseState.RightUp) != 0)
                         {
                             _rightMouseDown = false;
                         }
 
-                        //if (_leftMouseDown)
-                        //{
-                        //    joystickY *= (short)2.2;
-                        //}
-
-
-
-                        _controller.SetAxisValue(currAxisMouseX, joystickX);
-                        _controller.SetAxisValue(currAxisMouseY, joystickY);
+                        if (_controllerType == ControllerType.Xbox360)
+                        {
+                            _xbox360Controller.SetAxisValue(currAxisMouseX, joystickX);
+                            _xbox360Controller.SetAxisValue(currAxisMouseY, joystickY);
+                            _xbox360Controller.SubmitReport();
+                        }
+                        else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
+                        {
+                            if (currAxisMouseX == Xbox360Axis.RightThumbX)
+                            {
+                                _dualshock4Controller.SetAxisValue(DualShock4Axis.RightThumbX, joystickX);
+                            }
+                            else if (currAxisMouseX == Xbox360Axis.LeftThumbX)
+                            {
+                                _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, joystickX);
+                            }
+                            
+                            if (currAxisMouseY == Xbox360Axis.RightThumbY)
+                            {
+                                _dualshock4Controller.SetAxisValue(DualShock4Axis.RightThumbY, joystickY);
+                            }
+                            else if (currAxisMouseY == Xbox360Axis.LeftThumbY)
+                            {
+                                _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, joystickY);
+                            }
+                            
+                            _dualshock4Controller.SubmitReport();
+                        }
 
                         UpdateMouseState();
 
+                        if (!_locked)
+                        {
+                            interception_send(_interceptionContext, device, ref stroke, 1);
+                            continue;
+                        }
                     }
                     else if (interception_is_keyboard(device) == 1)
                     {
@@ -388,8 +439,34 @@ namespace zxmapper
                         {
                             if ((!_keySwapWeapons1 || !_keySwapWeapons2) && !_isDelayedResetInProgress)
                             {
-                                _controller.SetButtonState(Xbox360Button.Y, false);
+                                _xbox360Controller.SetButtonState(Xbox360Button.Y, false);
                             }
+                        }
+
+                        // Handle F1 key (Enable)
+                        if (_currKeystroke.code == ScanCodes.ENABLE && (_currKeystroke.state == 1 || _currKeystroke.state == 2))
+                        {
+                            if (!_locked)
+                            {
+                                SwitchLockedState();
+                                SetFilters();
+                            }
+                            // Let the F1 key pass through
+                            interception_send(_interceptionContext, device, ref stroke, 1);
+                            continue;
+                        }
+                        
+                        // Handle F2 key (Disable)
+                        if (_currKeystroke.code == ScanCodes.DISABLE && (_currKeystroke.state == 1 || _currKeystroke.state == 2))
+                        {
+                            if (_locked)
+                            {
+                                SwitchLockedState();
+                                SetFilters();
+                            }
+                            // Let the F2 key pass through
+                            interception_send(_interceptionContext, device, ref stroke, 1);
+                            continue;
                         }
                     }
                 }
@@ -417,9 +494,9 @@ namespace zxmapper
             if (state)
             {
                 _isDelayedResetInProgress = true;
-                _controller.SetButtonState(button, true);
+                _xbox360Controller.SetButtonState(button, true);
                 await Task.Delay(delayedKeyPressTime);
-                _controller.SetButtonState(button, false);
+                _xbox360Controller.SetButtonState(button, false);
                 _isDelayedResetInProgress = false;
             }
         }
@@ -430,64 +507,157 @@ namespace zxmapper
             {
                 SwitchLockedState();
                 SetFilters();
+                return;
             }
-            _controller.SetButtonState(Xbox360Button.B, _keySlide);
-            _controller.SetButtonState(Xbox360Button.A, _keyJump);
-            _controller.SetButtonState(Xbox360Button.X, _keyReload || _keyInteract);
-            _controller.SetButtonState(Xbox360Button.Up, _keyShield);
-            _controller.SetButtonState(Xbox360Button.Guide, _keyInventory);
-            _controller.SetButtonState(Xbox360Button.LeftShoulder, _keyAbility1 || _keyUltimate);
-            _controller.SetButtonState(Xbox360Button.RightShoulder, _keyPing || _keyUltimate);
-            _controller.SetButtonState(Xbox360Button.Right, _keyGrenade);
-            _controller.SetButtonState(Xbox360Button.LeftThumb, _keyZoom);
-
-            performDelayedKeyPress(Xbox360Button.Y, _keyHolsterWeapons);
-            if (_keySwapWeapons1 || _keySwapWeapons2)
+            
+            if (_controllerType == ControllerType.Xbox360)
             {
-                _controller.SetButtonState(Xbox360Button.Y, true);
+                _xbox360Controller.SetButtonState(Xbox360Button.B, _keySlide);
+                _xbox360Controller.SetButtonState(Xbox360Button.A, _keyJump);
+                _xbox360Controller.SetButtonState(Xbox360Button.X, _keyReload || _keyInteract);
+                _xbox360Controller.SetButtonState(Xbox360Button.Up, _keyShield);
+                _xbox360Controller.SetButtonState(Xbox360Button.Guide, _keyInventory);
+                _xbox360Controller.SetButtonState(Xbox360Button.LeftShoulder, _keyAbility1 || _keyUltimate);
+                _xbox360Controller.SetButtonState(Xbox360Button.RightShoulder, _keyPing || _keyUltimate);
+                _xbox360Controller.SetButtonState(Xbox360Button.Right, _keyGrenade);
+                _xbox360Controller.SetButtonState(Xbox360Button.LeftThumb, _keyZoom);
+
+                performDelayedKeyPress(Xbox360Button.Y, _keyHolsterWeapons);
+                if (_keySwapWeapons1 || _keySwapWeapons2)
+                {
+                    _xbox360Controller.SetButtonState(Xbox360Button.Y, true);
+                }
+                
+                // Submit report with all changes
+                _xbox360Controller.SubmitReport();
+            }
+            else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
+            {
+                // Map the Xbox controls to DualShock4 controls
+                _dualshock4Controller.SetButtonState(DualShock4Button.Circle, _keySlide);
+                _dualshock4Controller.SetButtonState(DualShock4Button.Cross, _keyJump);
+                _dualshock4Controller.SetButtonState(DualShock4Button.Square, _keyReload || _keyInteract);
+                _dualshock4Controller.SetButtonState(DualShock4Button.DpadUp, _keyShield);
+                _dualshock4Controller.SetButtonState(DualShock4Button.Ps, _keyInventory);
+                _dualshock4Controller.SetButtonState(DualShock4Button.L1, _keyAbility1 || _keyUltimate);
+                _dualshock4Controller.SetButtonState(DualShock4Button.R1, _keyPing || _keyUltimate);
+                _dualshock4Controller.SetButtonState(DualShock4Button.DpadRight, _keyGrenade);
+                _dualshock4Controller.SetButtonState(DualShock4Button.ThumbLeft, _keyZoom);
+
+                // Handle holster weapon
+                if (_keyHolsterWeapons)
+                {
+                    _dualshock4Controller.SetButtonState(DualShock4Button.Triangle, true);
+                    // We'll need to handle delayed press differently for DualShock
+                    Task.Delay(delayedKeyPressTime).ContinueWith(_ => {
+                        _dualshock4Controller.SetButtonState(DualShock4Button.Triangle, false);
+                        _dualshock4Controller.SubmitReport();
+                    });
+                }
+                else if (_keySwapWeapons1 || _keySwapWeapons2)
+                {
+                    _dualshock4Controller.SetButtonState(DualShock4Button.Triangle, true);
+                }
+                else 
+                {
+                    _dualshock4Controller.SetButtonState(DualShock4Button.Triangle, false);
+                }
+                
+                // Submit report with all changes
+                _dualshock4Controller.SubmitReport();
             }
         }
         void UpdateMouseState()
         {
+            if (_controllerType == ControllerType.Xbox360)
+            {
+                if (_leftMouseDown)
+                {
+                    _xbox360Controller.SetSliderValue(Xbox360Slider.RightTrigger, byte.MaxValue);
+                }
+                else if (!_leftMouseDown)
+                {
+                    _xbox360Controller.SetSliderValue(Xbox360Slider.RightTrigger, byte.MinValue);
+                }
 
-            if (_leftMouseDown)
-            {
-                _controller.SetSliderValue(Xbox360Slider.RightTrigger, byte.MaxValue);
-            }
-            else if (!_leftMouseDown)
-            {
-                _controller.SetSliderValue(Xbox360Slider.RightTrigger, byte.MinValue);
-            }
+                if (_rightMouseDown)
+                {
+                    _xbox360Controller.SetSliderValue(Xbox360Slider.LeftTrigger, byte.MaxValue);
+                }
+                else if (!_rightMouseDown)
+                {
+                    _xbox360Controller.SetSliderValue(Xbox360Slider.LeftTrigger, byte.MinValue);
+                }
 
-            if (_rightMouseDown)
-            {
-                _controller.SetSliderValue(Xbox360Slider.LeftTrigger, byte.MaxValue);
+                _xbox360Controller.SubmitReport();
             }
-            else if (!_rightMouseDown)
+            else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
             {
-                _controller.SetSliderValue(Xbox360Slider.LeftTrigger, byte.MinValue);
-            }
+                if (_leftMouseDown)
+                {
+                    _dualshock4Controller.SetSliderValue(DualShock4Slider.RightTrigger, byte.MaxValue);
+                }
+                else if (!_leftMouseDown)
+                {
+                    _dualshock4Controller.SetSliderValue(DualShock4Slider.RightTrigger, byte.MinValue);
+                }
 
+                if (_rightMouseDown)
+                {
+                    _dualshock4Controller.SetSliderValue(DualShock4Slider.LeftTrigger, byte.MaxValue);
+                }
+                else if (!_rightMouseDown)
+                {
+                    _dualshock4Controller.SetSliderValue(DualShock4Slider.LeftTrigger, byte.MinValue);
+                }
+
+                _dualshock4Controller.SubmitReport();
+            }
         }
         void CheckForAxisResetY()
         {
-            if (_lastDirectionY == DirectionStateY.None)
+            if (_controllerType == ControllerType.Xbox360)
             {
-                _controller.SetAxisValue(currAxisMoveY, 0);
-            }
-            else if (_keyDown && _keyUp)
-            {
-                _controller.SetAxisValue(currAxisMoveY, 0);
-            }
-            else
-            {
-                if (_lastDirectionY == DirectionStateY.Up)
+                if (_lastDirectionY == DirectionStateY.None)
                 {
-                    _controller.SetAxisValue(currAxisMoveY, short.MaxValue);
+                    _xbox360Controller.SetAxisValue(currAxisMoveY, 0);
                 }
-                else if (_lastDirectionY == DirectionStateY.Down)
+                else if (_keyDown && _keyUp)
                 {
-                    _controller.SetAxisValue(currAxisMoveY, short.MinValue);
+                    _xbox360Controller.SetAxisValue(currAxisMoveY, 0);
+                }
+                else
+                {
+                    if (_lastDirectionY == DirectionStateY.Up)
+                    {
+                        _xbox360Controller.SetAxisValue(currAxisMoveY, short.MaxValue);
+                    }
+                    else if (_lastDirectionY == DirectionStateY.Down)
+                    {
+                        _xbox360Controller.SetAxisValue(currAxisMoveY, short.MinValue);
+                    }
+                }
+            }
+            else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
+            {
+                if (_lastDirectionY == DirectionStateY.None)
+                {
+                    _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, 0);
+                }
+                else if (_keyDown && _keyUp)
+                {
+                    _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, 0);
+                }
+                else
+                {
+                    if (_lastDirectionY == DirectionStateY.Up)
+                    {
+                        _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, short.MaxValue);
+                    }
+                    else if (_lastDirectionY == DirectionStateY.Down)
+                    {
+                        _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, short.MinValue);
+                    }
                 }
             }
         }
@@ -495,25 +665,50 @@ namespace zxmapper
 
         void CheckForAxisResetX()
         {
+            if (_controllerType == ControllerType.Xbox360)
+            {
                 if (_lastDirectionX == DirectionStateX.None)
                 {
-                    _controller.SetAxisValue(currAxisMoveX, 0);
+                    _xbox360Controller.SetAxisValue(currAxisMoveX, 0);
                 }
                 else if (_keyLeft && _keyRight)
                 {
-                    _controller.SetAxisValue(currAxisMoveX, 0);
+                    _xbox360Controller.SetAxisValue(currAxisMoveX, 0);
                 }
                 else
                 {
                     if (_lastDirectionX == DirectionStateX.Right)
                     {
-                        _controller.SetAxisValue(currAxisMoveX, short.MaxValue);
+                        _xbox360Controller.SetAxisValue(currAxisMoveX, short.MaxValue);
                     }
                     else if (_lastDirectionX == DirectionStateX.Left)
                     {
-                        _controller.SetAxisValue(currAxisMoveX, short.MinValue);
+                        _xbox360Controller.SetAxisValue(currAxisMoveX, short.MinValue);
                     }
                 }
+            }
+            else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
+            {
+                if (_lastDirectionX == DirectionStateX.None)
+                {
+                    _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, 0);
+                }
+                else if (_keyLeft && _keyRight)
+                {
+                    _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, 0);
+                }
+                else
+                {
+                    if (_lastDirectionX == DirectionStateX.Right)
+                    {
+                        _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, short.MaxValue);
+                    }
+                    else if (_lastDirectionX == DirectionStateX.Left)
+                    {
+                        _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, short.MinValue);
+                    }
+                }
+            }
         }
         
 
@@ -523,20 +718,50 @@ namespace zxmapper
             {
                 if (((DateTime.Now - _lastMouseMoveTime).TotalMilliseconds > mouseResetDelay))
                 {
-                    _controller.SetAxisValue(currAxisMouseX, 0);
-                    if (!_leftMouseDown)
+                    if (_controllerType == ControllerType.Xbox360)
                     {
-                        _controller.SetAxisValue(currAxisMouseY, 0);
+                        _xbox360Controller.SetAxisValue(currAxisMouseX, 0);
+                        if (!_leftMouseDown)
+                        {
+                            _xbox360Controller.SetAxisValue(currAxisMouseY, 0);
+                        }
+                        _xbox360Controller.SubmitReport();
+                    }
+                    else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
+                    {
+                        // Map Xbox axis to DualShock axis for inactivity reset
+                        if (currAxisMouseX == Xbox360Axis.RightThumbX)
+                        {
+                            _dualshock4Controller.SetAxisValue(DualShock4Axis.RightThumbX, 0);
+                        }
+                        else if (currAxisMouseX == Xbox360Axis.LeftThumbX)
+                        {
+                            _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, 0);
+                        }
+                        
+                        if (!_leftMouseDown)
+                        {
+                            if (currAxisMouseY == Xbox360Axis.RightThumbY)
+                            {
+                                _dualshock4Controller.SetAxisValue(DualShock4Axis.RightThumbY, 0);
+                            }
+                            else if (currAxisMouseY == Xbox360Axis.LeftThumbY)
+                            {
+                                _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, 0);
+                            }
+                        }
+                        
+                        _dualshock4Controller.SubmitReport();
                     }
                 }
-                Task.Delay(1).Wait();
+                await Task.Delay(mouseResetDelay);
             }
         }
 
         public void Cleanup()
         {
             interception_destroy_context(_interceptionContext);
-            _controller.Disconnect();
+            DisconnectController();
             _client.Dispose();
         }
 
@@ -585,46 +810,82 @@ namespace zxmapper
             _keyReload = false;
             _keyInteract = false;
             _keyAbility1 = false;
-
+            _keyUltimate = false;
+            _keyShield = false;
             _keySwapWeapons1 = false;
             _keySwapWeapons2 = false;
             _keyHolsterWeapons = false;
-
+            _keyPing = false;
+            _keyGrenade = false;
+            _keyZoom = false;
+            _keyMap = false;
+            _keyInventory = false;
             _leftMouseDown = false;
             _rightMouseDown = false;
 
-            _controller.SetButtonState(Xbox360Button.A, false);
-            _controller.SetButtonState(Xbox360Button.B, false);
-            _controller.SetButtonState(Xbox360Button.X, false);
-            _controller.SetButtonState(Xbox360Button.Y, false);
-            _controller.SetButtonState(Xbox360Button.LeftShoulder, false);
-            _controller.SetButtonState(Xbox360Button.RightShoulder, false);
-            _controller.SetSliderValue(Xbox360Slider.LeftTrigger, 0);
-            _controller.SetSliderValue(Xbox360Slider.RightTrigger, 0);
+            if (_controllerType == ControllerType.Xbox360)
+            {
+                // Reset Xbox buttons
+                _xbox360Controller.SetButtonState(Xbox360Button.A, false);
+                _xbox360Controller.SetButtonState(Xbox360Button.B, false);
+                _xbox360Controller.SetButtonState(Xbox360Button.X, false);
+                _xbox360Controller.SetButtonState(Xbox360Button.Y, false);
+                _xbox360Controller.SetButtonState(Xbox360Button.LeftShoulder, false);
+                _xbox360Controller.SetButtonState(Xbox360Button.RightShoulder, false);
+                _xbox360Controller.SetSliderValue(Xbox360Slider.LeftTrigger, 0);
+                _xbox360Controller.SetSliderValue(Xbox360Slider.RightTrigger, 0);
 
+                // Reset Xbox axes
+                _xbox360Controller.SetAxisValue(Xbox360Axis.LeftThumbX, 0);
+                _xbox360Controller.SetAxisValue(Xbox360Axis.LeftThumbY, 0);
+                _xbox360Controller.SetAxisValue(Xbox360Axis.RightThumbX, 0);
+                _xbox360Controller.SetAxisValue(Xbox360Axis.RightThumbY, 0);
+                
+                _xbox360Controller.SubmitReport();
+            }
+            else if (_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense)
+            {
+                // Reset DualShock buttons
+                _dualshock4Controller.SetButtonState(DualShock4Button.Cross, false);
+                _dualshock4Controller.SetButtonState(DualShock4Button.Circle, false);
+                _dualshock4Controller.SetButtonState(DualShock4Button.Square, false);
+                _dualshock4Controller.SetButtonState(DualShock4Button.Triangle, false);
+                _dualshock4Controller.SetButtonState(DualShock4Button.L1, false);
+                _dualshock4Controller.SetButtonState(DualShock4Button.R1, false);
+                _dualshock4Controller.SetSliderValue(DualShock4Slider.LeftTrigger, 0);
+                _dualshock4Controller.SetSliderValue(DualShock4Slider.RightTrigger, 0);
 
-            _controller.SetAxisValue(Xbox360Axis.LeftThumbX, 0);
-            _controller.SetAxisValue(Xbox360Axis.LeftThumbY, 0);
-            _controller.SetAxisValue(Xbox360Axis.RightThumbX, 0);
-            _controller.SetAxisValue(Xbox360Axis.RightThumbY, 0);
-
-
-            interception_send(_interceptionContext, _keyboardDevice, wUpByteArray, 1);
-            interception_send(_interceptionContext, _keyboardDevice, sUpByteArray, 1);
-            interception_send(_interceptionContext, _keyboardDevice, aUpByteArray, 1);
-            interception_send(_interceptionContext, _keyboardDevice, dUpByteArray, 1);
-            _lastDirectionX = DirectionStateX.None;
-            _lastDirectionY = DirectionStateY.None;
-            
+                // Reset DualShock axes
+                _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbX, 0);
+                _dualshock4Controller.SetAxisValue(DualShock4Axis.LeftThumbY, 0);
+                _dualshock4Controller.SetAxisValue(DualShock4Axis.RightThumbX, 0);
+                _dualshock4Controller.SetAxisValue(DualShock4Axis.RightThumbY, 0);
+                
+                _dualshock4Controller.SubmitReport();
+            }
         }
         public void ConnectController()
         {
-            _controller.Connect();
+            if (_controllerType == ControllerType.Xbox360 && _xbox360Controller != null)
+            {
+                _xbox360Controller.Connect();
+            }
+            else if ((_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense) && _dualshock4Controller != null)
+            {
+                _dualshock4Controller.Connect();
+            }
         }
 
         public void DisconnectController()
         {
-            _controller.Disconnect();
+            if (_controllerType == ControllerType.Xbox360 && _xbox360Controller != null)
+            {
+                _xbox360Controller.Disconnect();
+            }
+            else if ((_controllerType == ControllerType.DualShock4 || _controllerType == ControllerType.DualSense) && _dualshock4Controller != null)
+            {
+                _dualshock4Controller.Disconnect();
+            }
         }
 
         private bool _isStreamProof = false;
@@ -633,65 +894,174 @@ namespace zxmapper
 
         public void SaveConfiguration(string filePath)
         {
-            StringBuilder configData = new StringBuilder();
-
-            var scanCodeProperties = typeof(ScanCodes).GetProperties(BindingFlags.Public | BindingFlags.Static);
-
-            foreach (var property in scanCodeProperties)
+            try
             {
-                var value = property.GetValue(null);
-                configData.AppendLine($"{property.Name}={value}");
+                StringBuilder config = new StringBuilder();
+                foreach (var property in typeof(ScanCodes).GetProperties(BindingFlags.Public | BindingFlags.Static))
+                {
+                    var value = property.GetValue(null);
+                    config.AppendLine($"{property.Name}={value}");
+                }
+
+                // Boolean settings
+                config.AppendLine($"_southpaw={_southpaw}");
+                config.AppendLine($"_streamProof={_isStreamProof}");
+                
+                // Controller type setting
+                config.AppendLine($"_controllerType={(int)_controllerType}");
+
+                // Sensitivity settings
+                config.AppendLine($"sensX={sensX}");
+                config.AppendLine($"sensY={sensY}");
+                config.AppendLine($"scaleFactor={scaleFactor}");
+                config.AppendLine($"expFactor={expFactor}");
+                
+                // Save custom keybinds
+                foreach (Action action in Enum.GetValues(typeof(Action)))
+                {
+                    int actionValue = 0;
+                    // Check if this action has a mapping in Form1's keyMappings dictionary
+                    // This is a bit of a hack since we don't have direct access to Form1's keyMappings
+                    if (action == Action.EnableMapping)
+                    {
+                        actionValue = ScanCodes.ENABLE;
+                    }
+                    else if (action == Action.DisableMapping)
+                    {
+                        actionValue = ScanCodes.DISABLE;
+                    }
+                    else
+                    {
+                        // Try to map from ScanCodes
+                        switch (action)
+                        {
+                            case Action.Up: actionValue = ScanCodes.FORWARD; break;
+                            case Action.Down: actionValue = ScanCodes.BACKWARDS; break;
+                            case Action.Left: actionValue = ScanCodes.LEFT; break;
+                            case Action.Right: actionValue = ScanCodes.RIGHT; break;
+                            case Action.Jump: actionValue = ScanCodes.JUMP; break;
+                            case Action.Slide: actionValue = ScanCodes.SLIDE; break;
+                            case Action.Reload: actionValue = ScanCodes.RELOAD; break;
+                            case Action.Interact: actionValue = ScanCodes.INTERACT; break;
+                            case Action.Ability1: actionValue = ScanCodes.ABILITY1; break;
+                            case Action.Ultimate: actionValue = ScanCodes.ULTIMATE; break;
+                            case Action.Shield: actionValue = ScanCodes.SHIELD; break;
+                            case Action.Grenade: actionValue = ScanCodes.GRENADE; break;
+                            case Action.Ping: actionValue = ScanCodes.PING; break;
+                        }
+                    }
+                    
+                    config.AppendLine($"ACTION_{action}={actionValue}");
+                }
+
+                File.WriteAllText(filePath, config.ToString());
             }
-
-            // bools
-            configData.AppendLine($"_southpaw={_southpaw}");
-            configData.AppendLine($"_streamProof={_isStreamProof}");
-
-            //sens
-            configData.AppendLine($"sensX={sensX}");
-            configData.AppendLine($"sensY={sensY}");
-            configData.AppendLine($"scaleFactor={scaleFactor}");
-            configData.AppendLine($"expFactor={expFactor}");
-
-            //toggle
-            configData.AppendLine($"TOGGLE={ScanCodes.TOGGLE}");
-
-            File.WriteAllText(filePath, configData.ToString());
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error saving configuration: {ex.Message}");
+            }
         }
         public void LoadConfiguration(string filePath)
         {
             try
             {
                 ConfigData configData = ConfigUtil.ReadConfigFile(filePath);
-
+                
+                // Load all ScanCode properties
                 foreach (var keyValuePair in configData.KeyBindings)
                 {
                     var property = typeof(ScanCodes).GetProperty(keyValuePair.Key);
-
+                    
                     if (property != null && property.GetGetMethod().IsStatic)
                     {
-                        object value = Convert.ChangeType(keyValuePair.Value, property.PropertyType);
+                        object value = Convert.ChangeType((int)keyValuePair.Value, property.PropertyType);
                         property.SetValue(null, value);
                     }
                 }
 
-                //bools
-                configData.BooleanSettings.TryGetValue("_southpaw", out _southpaw);
+                // Load boolean settings
+                _southpaw = configData.BooleanSettings["_southpaw"];
+                _isStreamProof = configData.BooleanSettings["_streamProof"];
+                
+                // Load controller type setting
+                if (configData.BooleanSettings.ContainsKey("_controllerType"))
+                {
+                    if (bool.TryParse(configData.BooleanSettings["_controllerType"].ToString(), out bool boolValue))
+                    {
+                        int controllerTypeValue = boolValue ? 1 : 0;
+                        _controllerType = (ControllerType)controllerTypeValue;
+                    }
+                    else if (int.TryParse(configData.BooleanSettings["_controllerType"].ToString(), out int controllerTypeValue))
+                    {
+                        if (Enum.IsDefined(typeof(ControllerType), controllerTypeValue))
+                        {
+                            _controllerType = (ControllerType)controllerTypeValue;
+                        }
+                    }
+                }
 
-                //sens
-                configData.SensitiviySettings.TryGetValue("sensX", out sensX);
-                configData.SensitiviySettings.TryGetValue("sensY", out sensY);
-                configData.SensitiviySettings.TryGetValue("scaleFactor", out scaleFactor);
-                configData.SensitiviySettings.TryGetValue("expFactor", out expFactor);
-
-                //toggle
-                configData.TOGGLE = ScanCodes.TOGGLE;
-
+                // Load sensitivity settings
+                sensX = configData.SensitiviySettings["sensX"];
+                sensY = configData.SensitiviySettings["sensY"];
+                expFactor = configData.SensitiviySettings["expFactor"];
+                scaleFactor = configData.SensitiviySettings["scaleFactor"];
+                
+                // Set toggle
+                ScanCodes.TOGGLE = configData.TOGGLE;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading configuration: {ex.Message}", "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Debug.WriteLine($"Error loading configuration: {ex.Message}");
             }
+        }
+
+        private async void CheckForStuckMouseButtons()
+        {
+            while (true)
+            {
+                await Task.Delay(MOUSE_BUTTON_CHECK_INTERVAL);
+                
+                if (_locked)
+                {
+                    // Check for stuck left mouse button
+                    if (_leftMouseDown && (DateTime.Now - _lastLeftClickTime).TotalMilliseconds > 5000)
+                    {
+                        _leftMouseDown = false;
+                        _xbox360Controller.SetButtonState(Xbox360Button.RightShoulder, false);
+                        _xbox360Controller.SubmitReport();
+                        Debug.WriteLine("Force released stuck left mouse button");
+                    }
+                    
+                    // Check for stuck right mouse button
+                    if (_rightMouseDown && (DateTime.Now - _lastRightClickTime).TotalMilliseconds > 5000)
+                    {
+                        _rightMouseDown = false;
+                        _xbox360Controller.SetButtonState(Xbox360Button.LeftShoulder, false);
+                        _xbox360Controller.SubmitReport();
+                        Debug.WriteLine("Force released stuck right mouse button");
+                    }
+                }
+            }
+        }
+
+        // Set the controller type and reinitialize if necessary
+        public void SetControllerType(ControllerType type)
+        {
+            if (_controllerType != type)
+            {
+                // Disconnect the existing controller if connected
+                DisconnectController();
+
+                _controllerType = type;
+                
+                // Reinitialize with the new controller type
+                InitializeVigem();
+            }
+        }
+
+        public ControllerType GetControllerType()
+        {
+            return _controllerType;
         }
     }
 }

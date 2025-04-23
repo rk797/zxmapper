@@ -19,10 +19,13 @@ virtual gamepad emulation.
 ## Features
 ```sh-session
 - Keystroke -> Controller mapping
-- Customizable mappings
+- Support for multiple controller types: Xbox 360, DualShock 4 (PS4), and DualSense (PS5)
+- Customizable mappings for all keys (not just WASD)
 - Cross center axis reset from W->D or D->W
 - Low input latency
-- Suppports southpaw / standard axis configuration
+- Supports southpaw / standard axis configuration
+- F1/F2 hotkeys to enable/disable mapping on the fly
+- Custom keybinds for game-specific actions
 ```
 
 
@@ -59,7 +62,33 @@ virtual gamepad emulation.
 >[!NOTE]
 > Some antivirus programs may flag ZXMapper as a potential threat. This is a false positive. ZXMapper uses the Interception driver, which involves kernel-level communication to capture and remap keyboard inputs. Because of this, antivirus software might mistakenly identify it as malicious. To ensure ZXMapper functions correctly, you may need to temporarily disable your antivirus software during installation and use. Rest assured, ZXMapper is safe and does not pose any threat to your system.
 
+## Usage Guide
 
+### Controller Selection
+ZXMapper now supports multiple controller types:
+
+1. Select your desired controller type from the dropdown:
+   - Xbox 360 (default)
+   - DualShock 4 (PS4)
+   - DualSense (PS5)
+2. This selection must be made before enabling mapping
+3. Your choice will be saved for future sessions
+
+### Custom Keybinds
+ZXMapper now supports custom keybinds for all game actions, not just WASD movements:
+
+1. Click the "Custom Keybinds" button in the main window
+2. Click on any action button you want to bind
+3. Press the key you want to assign to that action
+4. Click "Save" to apply your changes
+
+### Enable/Disable Mapping
+You can now toggle the mapping on and off using keyboard shortcuts:
+
+- Press F1 to enable mapping
+- Press F2 to disable mapping
+
+These hotkeys can be customized in the Custom Keybinds window.
 
 ## Credits
 
