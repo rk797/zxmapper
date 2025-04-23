@@ -175,6 +175,8 @@ namespace zxmapper
             this.groupBox2.Controls.Add(this.sensBoxY);
             this.groupBox2.Controls.Add(this.streamProof);
             this.groupBox2.Controls.Add(this.lToggle);
+            this.groupBox2.Controls.Add(this.controllerTypeLabel);
+            this.groupBox2.Controls.Add(this.controllerTypeDropDown);
             this.groupBox2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.groupBox2.Font = new System.Drawing.Font("Segoe UI Semibold", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.groupBox2.ForeColor = System.Drawing.Color.White;
@@ -522,6 +524,41 @@ namespace zxmapper
             this.infoLabel.TabIndex = 15;
             this.infoLabel.Text = "CTRL + ALT + DELETE";
             // 
+            // customKeyBindsButton
+            // 
+            this.customKeyBindsButton.Location = new System.Drawing.Point(200, 180);
+            this.customKeyBindsButton.Name = "customKeyBindsButton";
+            this.customKeyBindsButton.Size = new System.Drawing.Size(155, 30);
+            this.customKeyBindsButton.TabIndex = 17;
+            this.customKeyBindsButton.Text = "Custom Keybinds";
+            this.customKeyBindsButton.UseVisualStyleBackColor = true;
+            this.customKeyBindsButton.Click += new System.EventHandler(this.customKeyBindsButton_Click);
+            // 
+            // controllerTypeLabel
+            // 
+            this.controllerTypeLabel.AutoSize = true;
+            this.controllerTypeLabel.BackColor = System.Drawing.Color.Transparent;
+            this.controllerTypeLabel.Font = new System.Drawing.Font("Segoe UI Semibold", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.controllerTypeLabel.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.controllerTypeLabel.Location = new System.Drawing.Point(26, 350);
+            this.controllerTypeLabel.Name = "controllerTypeLabel";
+            this.controllerTypeLabel.Size = new System.Drawing.Size(114, 20);
+            this.controllerTypeLabel.TabIndex = 28;
+            this.controllerTypeLabel.Text = "Controller Type";
+            // 
+            // controllerTypeDropDown
+            // 
+            this.controllerTypeDropDown.FormattingEnabled = true;
+            this.controllerTypeDropDown.Items.AddRange(new object[] {
+            "Xbox 360",
+            "DualShock 4 (PS4)",
+            "DualSense (PS5)"});
+            this.controllerTypeDropDown.Location = new System.Drawing.Point(140, 350);
+            this.controllerTypeDropDown.Name = "controllerTypeDropDown";
+            this.controllerTypeDropDown.Size = new System.Drawing.Size(136, 28);
+            this.controllerTypeDropDown.TabIndex = 29;
+            this.controllerTypeDropDown.SelectedIndexChanged += new System.EventHandler(this.controllerTypeDropDown_SelectedIndexChanged);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -530,6 +567,7 @@ namespace zxmapper
             this.ClientSize = new System.Drawing.Size(1017, 562);
             this.Controls.Add(this.panel1);
             this.Controls.Add(this.panel2);
+            this.Controls.Add(this.customKeyBindsButton);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.ForeColor = System.Drawing.Color.Transparent;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -586,6 +624,9 @@ namespace zxmapper
         private System.Windows.Forms.Label scalefactorLabel;
         private System.Windows.Forms.Label applyLabel;
         private System.Windows.Forms.CheckBox taskbarHide;
+        private System.Windows.Forms.Button customKeyBindsButton;
+        private System.Windows.Forms.Label controllerTypeLabel;
+        private System.Windows.Forms.ComboBox controllerTypeDropDown;
     }
 }
 

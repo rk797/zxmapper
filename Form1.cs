@@ -154,6 +154,12 @@ namespace zxmapper
                 mapper = new Mapper();
                 UpdateUIFromConfig(ConfigUtil.ReadConfigFile("config.zxm"));
                 toggleDropDown.SelectedIndex = 0;
+                
+                // Set default controller type if not already set
+                if (controllerTypeDropDown.SelectedIndex < 0)
+                {
+                    controllerTypeDropDown.SelectedIndex = 0;
+                }
             }
         }
 
@@ -367,6 +373,21 @@ namespace zxmapper
 
             southpaw.Checked = configData.BooleanSettings["_southpaw"];
             streamProof.Checked = configData.BooleanSettings["_streamProof"];
+            
+            // Set controller type
+            if (configData.BooleanSettings.ContainsKey("_controllerType"))
+            {
+                if (int.TryParse(configData.BooleanSettings["_controllerType"].ToString(), out int controllerTypeValue))
+                {
+                    controllerTypeDropDown.SelectedIndex = controllerTypeValue;
+                }
+            }
+            else
+            {
+                // Default to Xbox controller
+                controllerTypeDropDown.SelectedIndex = 0;
+            }
+            
             resumeCheckBehaviour = true;
 
             sensBoxX.Value = (decimal)configData.SensitiviySettings["sensX"];
@@ -409,7 +430,54 @@ namespace zxmapper
 
         private void taskbarHide_CheckedChanged(object sender, EventArgs e)
         {
-            Form1.ActiveForm.ShowInTaskbar = !taskbarHide.Checked;
+            this.ShowInTaskbar = !taskbarHide.Checked;
+        }
+
+        private void customKeyBindsButton_Click(object sender, EventArgs e)
+        {
+            var customKeybindsForm = new CustomKeybindsForm(mapper, keyMappings);
+            customKeybindsForm.ShowDialog();
+            
+            // Update mappings after dialog is closed
+            if (customKeybindsForm.SettingsChanged)
+            {
+                RefreshKeyMappings();
+            }
+        }
+
+        private void controllerTypeDropDown_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (mapper != null)
+            {
+                ControllerType selectedType = (ControllerType)controllerTypeDropDown.SelectedIndex;
+                mapper.SetControllerType(selectedType);
+                
+                // Update the UI based on the selected controller type
+                switch (selectedType)
+                {
+                    case ControllerType.Xbox360:
+                        applyLabel.Text = "Using Xbox 360 controller";
+                        break;
+                    case ControllerType.DualShock4:
+                        applyLabel.Text = "Using DualShock 4 controller";
+                        break;
+                    case ControllerType.DualSense:
+                        applyLabel.Text = "Using DualSense controller";
+                        break;
+                }
+                
+                // Clear the label after a delay
+                Task.Delay(2000).ContinueWith(_ => {
+                    if (this.InvokeRequired)
+                    {
+                        this.Invoke(new Action(() => applyLabel.Text = ""));
+                    }
+                    else
+                    {
+                        applyLabel.Text = "";
+                    }
+                });
+            }
         }
     }
 }

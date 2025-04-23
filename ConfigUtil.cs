@@ -14,6 +14,7 @@ namespace zxmapper
         public Dictionary<string, Keys> KeyBindings { get; set; } = new Dictionary<string, Keys>();
         public Dictionary<string, bool> BooleanSettings { get; set; } = new Dictionary<string, bool>();
         public Dictionary<string, double> SensitiviySettings { get; set; } = new Dictionary<string, double>();
+        public Dictionary<Action, int> ActionMappings { get; set; } = new Dictionary<Action, int>();
         public int TOGGLE;
     }
     public class ConfigUtil
@@ -21,6 +22,7 @@ namespace zxmapper
         public static ConfigData ReadConfigFile(string filePath)
         {
             ConfigData configData = new ConfigData();
+            configData.ActionMappings = new Dictionary<Action, int>();
 
             if (!File.Exists(filePath))
             {
@@ -37,8 +39,81 @@ namespace zxmapper
                         {
                             configData.KeyBindings[property.Name] = keyValue;
                         }
+                        
+                        // Map specific keys to Actions
+                        if (property.Name == "FORWARD")
+                        {
+                            configData.ActionMappings[Action.Up] = (int)value;
+                        }
+                        else if (property.Name == "BACKWARDS")
+                        {
+                            configData.ActionMappings[Action.Down] = (int)value;
+                        }
+                        else if (property.Name == "LEFT")
+                        {
+                            configData.ActionMappings[Action.Left] = (int)value;
+                        }
+                        else if (property.Name == "RIGHT")
+                        {
+                            configData.ActionMappings[Action.Right] = (int)value;
+                        }
+                        else if (property.Name == "JUMP")
+                        {
+                            configData.ActionMappings[Action.Jump] = (int)value;
+                        }
+                        else if (property.Name == "SLIDE")
+                        {
+                            configData.ActionMappings[Action.Slide] = (int)value;
+                        }
+                        else if (property.Name == "RELOAD")
+                        {
+                            configData.ActionMappings[Action.Reload] = (int)value;
+                        }
+                        else if (property.Name == "INTERACT")
+                        {
+                            configData.ActionMappings[Action.Interact] = (int)value;
+                        }
+                        else if (property.Name == "ABILITY1")
+                        {
+                            configData.ActionMappings[Action.Ability1] = (int)value;
+                        }
+                        else if (property.Name == "ULTIMATE")
+                        {
+                            configData.ActionMappings[Action.Ultimate] = (int)value;
+                        }
+                        else if (property.Name == "SHIELD")
+                        {
+                            configData.ActionMappings[Action.Shield] = (int)value;
+                        }
+                        else if (property.Name == "GRENADE")
+                        {
+                            configData.ActionMappings[Action.Grenade] = (int)value;
+                        }
+                        else if (property.Name == "PING")
+                        {
+                            configData.ActionMappings[Action.Ping] = (int)value;
+                        }
+                        else if (property.Name == "ENABLE")
+                        {
+                            configData.ActionMappings[Action.EnableMapping] = (int)value;
+                        }
+                        else if (property.Name == "DISABLE")
+                        {
+                            configData.ActionMappings[Action.DisableMapping] = (int)value;
+                        }
                     }
-                    string[] booleanSettings = {"_southpaw", "_streamProof" /*, other boolean settings here */ };
+                    
+                    // Add all new action mappings
+                    foreach (Action action in Enum.GetValues(typeof(Action)))
+                    {
+                        if (!configData.ActionMappings.ContainsKey(action))
+                        {
+                            file.WriteLine($"ACTION_{action}=0");
+                            configData.ActionMappings[action] = 0;
+                        }
+                    }
+                    
+                    string[] booleanSettings = {"_southpaw", "_streamProof" /*, other boolean settings */ };
 
                     foreach (var setting in booleanSettings)
                     {
@@ -98,9 +173,27 @@ namespace zxmapper
                 {
                     configData.TOGGLE = int.Parse(value);
                 }
+                else if (key == "_controllerType")
+                {
+                    if (int.TryParse(value, out int controllerTypeValue))
+                    {
+                        configData.BooleanSettings[key] = controllerTypeValue == 1;
+                    }
+                    else if (bool.TryParse(value, out bool boolValue))
+                    {
+                        configData.BooleanSettings[key] = boolValue;
+                    }
+                }
+                else if (key.StartsWith("ACTION_") && Enum.TryParse(key.Substring(7), out Action action))
+                {
+                    configData.ActionMappings[action] = int.Parse(value);
+                }
                 else if (Enum.TryParse<Keys>(value, out var keyValue))
                 {
                     configData.KeyBindings[key] = keyValue;
+                    
+                    // Map ScanCodes to Actions
+                    MapScanCodeToAction(key, int.Parse(value), configData.ActionMappings);
                 }
                 else if (bool.TryParse(value, out var boolValue))
                 {
@@ -109,6 +202,58 @@ namespace zxmapper
             }
 
             return configData;
+        }
+        
+        private static void MapScanCodeToAction(string scanCodeName, int value, Dictionary<Action, int> actionMappings)
+        {
+            switch (scanCodeName)
+            {
+                case "FORWARD": 
+                    actionMappings[Action.Up] = value; 
+                    break;
+                case "BACKWARDS": 
+                    actionMappings[Action.Down] = value; 
+                    break;
+                case "LEFT": 
+                    actionMappings[Action.Left] = value; 
+                    break;
+                case "RIGHT": 
+                    actionMappings[Action.Right] = value; 
+                    break;
+                case "JUMP": 
+                    actionMappings[Action.Jump] = value; 
+                    break;
+                case "SLIDE": 
+                    actionMappings[Action.Slide] = value; 
+                    break;
+                case "RELOAD": 
+                    actionMappings[Action.Reload] = value; 
+                    break;
+                case "INTERACT": 
+                    actionMappings[Action.Interact] = value; 
+                    break;
+                case "ABILITY1": 
+                    actionMappings[Action.Ability1] = value; 
+                    break;
+                case "ULTIMATE": 
+                    actionMappings[Action.Ultimate] = value; 
+                    break;
+                case "SHIELD": 
+                    actionMappings[Action.Shield] = value; 
+                    break;
+                case "GRENADE": 
+                    actionMappings[Action.Grenade] = value; 
+                    break;
+                case "PING": 
+                    actionMappings[Action.Ping] = value; 
+                    break;
+                case "ENABLE":
+                    actionMappings[Action.EnableMapping] = value; 
+                    break;
+                case "DISABLE":
+                    actionMappings[Action.DisableMapping] = value; 
+                    break;
+            }
         }
     }
 }

@@ -20,5 +20,22 @@
         Grenade,
         Ping,
         Toggle,
+        Inventory,
+        Map,
+        Tactical,
+        Melee,
+        Crouch,
+        Sprint,
+        UseHealthItem,
+        Scoreboard,
+        VoiceChat,
+        PingWheel,
+        EnableMapping,
+        DisableMapping,
+        Custom1,
+        Custom2,
+        Custom3,
+        Custom4,
+        Custom5
     }
 }
